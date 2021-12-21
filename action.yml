@@ -30,6 +30,9 @@ inputs:
   artifacts:
     description: 'Comma-separated copr-builds to install in test env'
     required: true
+  env_vars:
+    description: 'Environment variables for test env'
+    default: ''
   debug:
     description: 'Print debug logs when preparing/issuing request'
     default: 'true'
@@ -51,6 +54,13 @@ runs:
         echo "::set-output name=artifacts_list::$(cat artifacts)"
       shell: bash
 
+    - name: Generate env_vars
+      id: gen_env_vars
+      run: |
+        python -c 'import json;print({} if not "${{ inputs.env_vars }}".strip() else json.dumps({key: value for key, value in [s.split("=", 1) for s in "${{ inputs.env_vars }}".split(",")]}))' > env_vars
+        echo "::set-output name=env_vars::$(cat env_vars)"
+      shell: bash
+
     - name: Generate a tmt test request
       id: gen_tmt_request
       run: |
@@ -65,6 +75,7 @@ runs:
           "environments": [{
             "arch": "${{ inputs.arch }}",
             "os": {"compose": "${{ inputs.compose }}"},
+            "variables": ${{ steps.gen_env_vars.outputs.env_vars }},
             "artifacts": ${{ steps.gen_artifacts_list.outputs.artifacts_list }}
           }]
         }
