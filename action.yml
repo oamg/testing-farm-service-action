@@ -31,7 +31,7 @@ inputs:
     description: 'Comma-separated copr-builds to install in test env'
     required: true
   env_vars:
-    description: 'Environment variables for test env'
+    description: 'Environment variables for test env, separated by ; or ,'
     default: ''
   debug:
     description: 'Print debug logs when preparing/issuing request'
@@ -57,7 +57,7 @@ runs:
     - name: Generate env_vars
       id: gen_env_vars
       run: |
-        python -c 'import json;print({} if not "${{ inputs.env_vars }}".strip() else json.dumps({key: value for key, value in [s.split("=", 1) for s in "${{ inputs.env_vars }}".split(",")]}))' > env_vars
+        python -c 'import json; sep=";" if ";" in "${{ inputs.env_vars }}" else ","; print({} if not "${{ inputs.env_vars }}".strip() else json.dumps({key: value for key, value in [s.split("=", 1) for s in "${{ inputs.env_vars }}".split(sep)]}))' > env_vars
         echo "::set-output name=env_vars::$(cat env_vars)"
       shell: bash
 
