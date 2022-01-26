@@ -33,6 +33,9 @@ inputs:
   env_vars:
     description: 'Environment variables for test env, separated by ; or ,'
     default: ''
+  tmt_context:
+    description: 'Value of tmt.context, variables separated by ; or ,'
+    default: ''
   debug:
     description: 'Print debug logs when preparing/issuing request'
     default: 'true'
@@ -61,6 +64,13 @@ runs:
         echo "::set-output name=env_vars::$(cat env_vars)"
       shell: bash
 
+    - name: Generate tmt context
+      id: gen_tmt_context
+      run: |
+        python -c 'import json; sep=";" if ";" in "${{ inputs.tmt_context }}" else ","; print({} if not "${{ inputs.tmt_context }}".strip() else json.dumps({key: value for key, value in [s.split("=", 1) for s in "${{ inputs.tmt_context }}".split(sep)]}))' > tmt_context
+        echo "::set-output name=tmt_context::$(cat tmt_context)"
+      shell: bash
+
     - name: Generate a tmt test request
       id: gen_tmt_request
       run: |
@@ -76,7 +86,8 @@ runs:
             "arch": "${{ inputs.arch }}",
             "os": {"compose": "${{ inputs.compose }}"},
             "variables": ${{ steps.gen_env_vars.outputs.env_vars }},
-            "artifacts": ${{ steps.gen_artifacts_list.outputs.artifacts_list }}
+            "artifacts": ${{ steps.gen_artifacts_list.outputs.artifacts_list }},
+            "tmt": {"context": ${{ steps.gen_tmt_context.outputs.tmt_context }}}
           }]
         }
         EOF
